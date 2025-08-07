@@ -17,6 +17,8 @@ PROJECT_NET_PHYSNET=datacentre
 OC_BIN=oc
 OC_NAMESPACE=openstack
 
+OCP_READY_FLAG_FILE=$WORKING_DIR/.ocp_cluster_ready
+
 # Error codes
 E_BAD_INPUT=2
 E_SCENARIO=3
@@ -31,11 +33,36 @@ function workaround_config_drive() {
        ansible-playbook -i $INVENTORY_FILE /home/student/osp_training/scenarios_repo/playbooks/workarounds2.yml -e compute_group_name=$compute_hosts_group_name -e installer=podified >> /tmp/ansible_scenario_output.txt
 }
 
+function wait_for_ocp_to_be_ready() {
+    set +e
+    if [ -f $OCP_READY_FLAG_FILE ]; then
+        return
+    fi
+    echo -n "Waiting for OCP cluster to be ready...";
+    # It seems that we need to make sure couple of times that it works fine, so
+    # lets count it and wait until it will be 3 good calls in a row
+    counter=0
+    while true; do
+        $OC_BIN -n $OC_NAMESPACE exec openstackclient -- openstack version show &>/dev/null
+        if [ $? -eq 0 ]; then
+            let counter++
+            if [ $counter -eq 3 ]; then
+                break
+            fi
+        else
+            counter=0
+            sleep 5;
+        fi;
+    done
+    touch $OCP_READY_FLAG_FILE
+    echo "OK"
+    set -e
+}
+
 function prepare_inventory_file() {
     if ! test -s "/home/student/osp_training/ansible_inventory.yaml"; then
         cd /home/student/osp_training/scenarios_repo
         bash osp-workshop-2024.sh -s dataplanenodeset-openstack-data-plane -c ~/.auth/ocp4-kubeconfig inventory
-	workaround_config_drive
         cd -
     fi
 }
@@ -80,7 +107,6 @@ spec:
 if [ "${INSTALLER}" == "tripleo" ]; then
         ANSIBLE_CMD="ansible-playbook -vv -i $INVENTORY_FILE -e workshop_message_file=$WORKSHOP_MESSAGE_FILE -e working_dir=$WORKING_DIR -e installer=$INSTALLER"
 else
-        #DATADIR="/tmp/ovn_training/data"
         compute_hosts_group_name=openstack-data-plane
         ssh_key_file=$WORKING_DIR/compute.key
         osp_subnet=192.168.51.0/24
@@ -98,10 +124,14 @@ else
                 sudo /sbin/ip route add $osp_subnet via $utility_ip dev $nic
         fi
 
-	configure_oc_auth
+	    configure_oc_auth
+        # First of all lets wait for the OCP to be ready and to have refreshed
+        # SSL certificates
+        wait_for_ocp_to_be_ready
+	    prepare_inventory_file
         configure_ssh_jump_host "lab@utility"
+	    workaround_config_drive
         ensure_nic_mappings_are_set
-	prepare_inventory_file
 
         ANSIBLE_CMD="ansible-playbook \
                 -i $INVENTORY_FILE \
