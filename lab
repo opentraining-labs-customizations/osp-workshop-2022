@@ -93,6 +93,7 @@ EOF
 }
 
 function ensure_nic_mappings_are_set() {
+    echo -n "Making sure that nicMappings in the openstackcontrolplane/$OPENSTACK_CONTROL_PLANE_CR_NAME CR is configured properly..."
     $OC_BIN -n $OC_NAMESPACE patch openstackcontrolplane $OPENSTACK_CONTROL_PLANE_CR_NAME --type=merge -p "
 spec:
   ovn:
@@ -102,6 +103,7 @@ spec:
          $PROJECT_NET_PHYSNET: $PHYSNET_NIC
 " &>/dev/null
     $OC_BIN -n $OC_NAMESPACE wait --for=condition=Ready openstackcontrolplane/$OPENSTACK_CONTROL_PLANE_CR_NAME --timeout=180s &>/dev/null
+    echo "OK"
 }
 
 if [ "${INSTALLER}" == "tripleo" ]; then
