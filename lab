@@ -30,7 +30,7 @@ INSTALLER="podified"
 
 function workaround_config_drive() {
        echo -e "DEBUG: in execute_workarounds" >> /tmp/log
-       ansible-playbook -i $INVENTORY_FILE /home/student/osp_training/scenarios_repo/playbooks/workarounds2.yml -e compute_group_name=$compute_hosts_group_name -e installer=podified >> /tmp/ansible_scenario_output.txt
+       ansible-playbook -i $INVENTORY_FILE /home/student/osp_training/scenarios_repo/playbooks/workaround_config_drive.yml -e compute_group_name=$compute_hosts_group_name -e installer=podified >> /tmp/ansible_scenario_output.txt
 }
 
 function wait_for_ocp_to_be_ready() {
