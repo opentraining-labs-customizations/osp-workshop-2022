@@ -14,6 +14,7 @@ SSH_KNOWN_HOSTS=$HOME/.ssh/known_hosts
 OPENSTACK_CONTROL_PLANE_CR_NAME="openstack-control-plane"
 PHYSNET_NIC=ens4
 PROJECT_NET_PHYSNET=datacentre
+KUBECONFIG="$HOME/.auth/ocp4-kubeconfig"
 OC_BIN=oc
 OC_NAMESPACE=openstack
 
@@ -43,7 +44,7 @@ function wait_for_ocp_to_be_ready() {
     # lets count it and wait until it will be 3 good calls in a row
     counter=0
     while true; do
-        $OC_BIN -n $OC_NAMESPACE exec openstackclient -- openstack version show &>/dev/null
+        $OC_BIN --kubeconfig $KUBECONFIG -n $OC_NAMESPACE exec openstackclient -- openstack version show &>/dev/null
         if [ $? -eq 0 ]; then
             let counter++
             if [ $counter -eq 3 ]; then
@@ -62,7 +63,7 @@ function wait_for_ocp_to_be_ready() {
 function prepare_inventory_file() {
     if ! test -s "/home/student/osp_training/ansible_inventory.yaml"; then
         cd /home/student/osp_training/scenarios_repo
-        bash osp-workshop-2024.sh -s dataplanenodeset-openstack-data-plane -c ~/.auth/ocp4-kubeconfig inventory
+        bash osp-workshop-2024.sh -s dataplanenodeset-openstack-data-plane -c $KUBECONFIG inventory
         cd -
     fi
 }
@@ -94,7 +95,7 @@ EOF
 
 function ensure_nic_mappings_are_set() {
     echo -n "Making sure that nicMappings in the openstackcontrolplane/$OPENSTACK_CONTROL_PLANE_CR_NAME CR is configured properly..."
-    $OC_BIN -n $OC_NAMESPACE patch openstackcontrolplane $OPENSTACK_CONTROL_PLANE_CR_NAME --type=merge -p "
+    $OC_BIN --kubeconfig $KUBECONFIG -n $OC_NAMESPACE patch openstackcontrolplane $OPENSTACK_CONTROL_PLANE_CR_NAME --type=merge -p "
 spec:
   ovn:
    template:
@@ -102,7 +103,7 @@ spec:
        nicMappings:
          $PROJECT_NET_PHYSNET: $PHYSNET_NIC
 " &>/dev/null
-    $OC_BIN -n $OC_NAMESPACE wait --for=condition=Ready openstackcontrolplane/$OPENSTACK_CONTROL_PLANE_CR_NAME --timeout=180s &>/dev/null
+    $OC_BIN --kubeconfig $KUBECONFIG -n $OC_NAMESPACE wait --for=condition=Ready openstackcontrolplane/$OPENSTACK_CONTROL_PLANE_CR_NAME --timeout=180s &>/dev/null
     echo "OK"
 }
 
