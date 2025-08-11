@@ -140,7 +140,9 @@ function configure_routing_to_osp_ext_net() {
     local osp_subnet=$1
     local utility_ip=$2
     local nic=$(/sbin/ip -o route get $utility_ip | awk '{print $3}')
-    sudo /sbin/ip route add $osp_subnet via $utility_ip dev $nic
+    if ! /sbin/ip route | grep -q "$osp_subnet via $utility_ip"; then
+        sudo /sbin/ip route add $osp_subnet via $utility_ip dev $nic
+    fi
 }
 
 while getopts "b:dKs:i:p:c:o:n:j:r:" opt_key; do
