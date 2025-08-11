@@ -117,6 +117,9 @@ else
         osp_allocation_start=192.168.51.151
         osp_allocation_end=192.168.51.199
         utility_ip=172.25.250.253
+        # We don't want to write ansible WARNING about invalid characters in
+        # the inventory's group name so lets ignore it:
+        export ANSIBLE_TRANSFORM_INVALID_GROUP_CHARS=ignore
 
         # We need to make sure that directory where message file will be stored exists
         if [ ! -d "$WORKING_DIR/.scenario$2" ]; then
