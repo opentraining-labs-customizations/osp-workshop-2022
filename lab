@@ -293,7 +293,7 @@ function main() {
 
     checks $action $scenario
 
-    echo "Running $action action against scenario $scenario"
+    echo "Running $action action against scenario $scenario. Please be patient, this may take a while..."
     call_ansible $action $scenario
     rc=$?
 
